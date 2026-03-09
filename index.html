@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="theme-color" content="#1C0800"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <title>Cernunnos Workshop</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:#DFC88E;font-family:'Lora','Georgia',serif;}
+    #root{max-width:480px;margin:0 auto;min-height:100vh;}
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+/* ══════════════════════════════════════════════════════════
+   TASK PRESETS
+══════════════════════════════════════════════════════════ */
+const TASK_PRESETS = [
+  { name:"Cut",icon:"✂️",guidance:"Use a sharp knife and steel rule on a cutting mat — never freehand for straight lines. A rotary cutter is ideal for long straps. Change blades more often than you think: a dull blade drags and tears fibres." },
+  { name:"Skive",icon:"🔪",guidance:"Skiving reduces bulk at edges and folds. Work on marble or glass for best control. Aim for a feathered taper — not a blunt step. Keep your skiving knife razor-sharp: more accidents happen with dull blades than sharp ones." },
+  { name:"Mark",icon:"📐",guidance:"Use a wing divider or stitching groover to scribe a consistent line parallel to the edge. Mark lightly on the grain side — deep grooves weaken the leather. Always check alignment with a rule before committing." },
+  { name:"Punch Holes",icon:"🔨",guidance:"Mark with a pricking iron first, then open each hole with a stitching awl. Work on poundo board or end-grain wood — foam lets holes drift. Keep holes perpendicular to the surface. For hardware, punch one size under the fitting diameter." },
+  { name:"Glue",icon:"🧴",guidance:"Roughen both surfaces with sandpaper before applying contact cement. Apply thin even coats to both faces, then let flash off until tacky (2–5 min). Align carefully before pressing — contact cement bonds on first touch. Roll the seam firmly to push out air." },
+  { name:"Stitch",icon:"🧵",guidance:"Saddle stitch (two needles, one thread) locks each stitch — far stronger than machine. Keep both needles at equal tension. Lock the last 3 stitches by backstitching, then trim and melt thread tails. Consistent tension matters more than speed." },
+  { name:"Dye",icon:"🎨",guidance:"Case (lightly dampen) veg tan before dyeing for even absorption. Apply alcohol dyes with a wool dauber in circular motions. Build colour in thin layers — let each dry fully. Seal with a resist or finish coat to prevent transfer." },
+  { name:"Edge Coat",icon:"〰️",guidance:"Sand raw edges through 120 then 240 grit. For veg tan, burnishing gives a clean result. For chrome tan, use edge paint (Tokonole, Fenice). Apply 2–3 thin coats with a wooden applicator, letting each dry before the next. Finish with canvas for gloss." },
+  { name:"Burnish",icon:"🪵",guidance:"Dampen the edge lightly with water or gum tragacanth. Rub firmly with a wooden slicker or bone folder — friction heats fibres and compresses them smooth. Multiple passes build a polished sealed surface. Only works on veg tan; chrome tan needs edge paint." },
+  { name:"Condition",icon:"✨",guidance:"Apply conditioner (neatsfoot oil, beeswax, or Leather Honey) in thin coats with a clean cloth. Let absorb for several hours before buffing. Don't over-condition — saturated leather weakens and darkens permanently. One light coat is usually enough for new work." },
+  { name:"Hardware",icon:"🔩",guidance:"Test all rivets, snaps, and buckles before setting permanently. Use the correct setter — too small deforms the face, too large misses the post. Back rivets with scrap leather when setting on finished work. Always set on a solid steel block, never wood." },
+  { name:"Final Check",icon:"☑️",guidance:"Check: stitches even and tails burnt; edges smooth and finished; hardware secure and flat; no glue visible; dye and finish even. Test closures. Inspect under raking light. A horsehair brush lifts dust. This step is most often rushed — give it proper time." },
+];
+
+const KNOWLEDGE_TOPICS = [
+  { title:"Leather", wiki:"Leather", tag:"Basics" },
+  { title:"Vegetable Tanning", wiki:"Vegetable_tanning", tag:"Tanning" },
+  { title:"Chrome Tanning", wiki:"Chrome_tanning", tag:"Tanning" },
+  { title:"Brain Tanning", wiki:"Brain_tanning", tag:"Tanning" },
+  { title:"Saddle Stitch", wiki:"Saddle_stitch", tag:"Stitching" },
+  { title:"Harness Stitch", wiki:"Harness_stitch", tag:"Stitching" },
+  { title:"Awl", wiki:"Awl", tag:"Tools" },
+  { title:"Burnishing", wiki:"Burnishing", tag:"Finishing" },
+  { title:"Skiving", wiki:"Skiving_(leather)", tag:"Techniques" },
+  { title:"Leather Carving", wiki:"Leather_carving", tag:"Techniques" },
+  { title:"Tanning", wiki:"Tanning", tag:"Basics" },
+  { title:"Rawhide", wiki:"Rawhide_(material)", tag:"Materials" },
+  { title:"Chamois Leather", wiki:"Chamois_leather", tag:"Materials" },
+  { title:"Welt (Shoe)", wiki:"Welt_(shoe)", tag:"Construction" },
+];
+
+const SCRAP_PROJECTS = [
+  { id:"key-fob",name:"Key Fob",icon:"🔑",category:"Everyday Carry",w:[3,10],h:[5,15],thickMin:2,thickMax:5,skill:1,time:"30–45 min",sells:"£8–£18",desc:"A simple punched and stitched key fob. Great for practising edge finishing on a fast build.",tasks:["Cut","Mark","Punch Holes","Edge Coat","Burnish"],tips:"Veg tan works best — it burnishes cleanly and takes a rivet without tearing." },
+  { id:"luggage-tag",name:"Luggage Tag",icon:"🏷️",category:"Travel",w:[5,12],h:[8,20],thickMin:1.5,thickMax:3.5,skill:1,time:"45 min–1 hr",sells:"£12–£28",desc:"A personalised luggage tag with window for ID card and a loop strap.",tasks:["Cut","Mark","Skive","Glue","Stitch","Edge Coat","Burnish"],tips:"Skive around the window aperture to reduce bulk at the fold." },
+  { id:"watch-strap",name:"Watch Strap",icon:"⌚",category:"Wearable",w:[2,4],h:[20,30],thickMin:1.2,thickMax:2.5,skill:2,time:"1–2 hrs",sells:"£25–£75",desc:"Custom watch strap with tapered end, keeper loop, and punched holes. High perceived value for the material used.",tasks:["Cut","Skive","Mark","Punch Holes","Dye","Edge Coat","Burnish"],tips:"Taper from 24mm at the lug to 20mm at the buckle end using a skiver for a professional finish." },
+  { id:"bookmark",name:"Bookmark",icon:"📖",category:"Gifts",w:[2,5],h:[15,35],thickMin:0.8,thickMax:2,skill:1,time:"20–30 min",sells:"£6–£15",desc:"A slim tooled or plain leather bookmark. Perfect for very thin offcuts.",tasks:["Cut","Edge Coat","Burnish"],tips:"A stamp or initial before edge finishing adds £5–£8 of perceived value instantly." },
+  { id:"card-holder",name:"Card Holder",icon:"💳",category:"Everyday Carry",w:[9,15],h:[10,14],thickMin:1,thickMax:2,skill:2,time:"1–1.5 hrs",sells:"£20–£45",desc:"Minimalist two-pocket card holder. Holds 4–8 cards with a central cash slot.",tasks:["Cut","Skive","Mark","Glue","Punch Holes","Stitch","Edge Coat","Burnish"],tips:"Skive all edges to 0.6mm before gluing — bulk in the pockets is the most common beginner mistake." },
+  { id:"coin-purse",name:"Coin Purse",icon:"👛",category:"Everyday Carry",w:[10,20],h:[8,18],thickMin:1,thickMax:2.5,skill:2,time:"1–2 hrs",sells:"£18–£40",desc:"A fold-over coin purse with press stud or snap button. Great for chrome tan.",tasks:["Cut","Skive","Mark","Glue","Punch Holes","Stitch","Hardware","Burnish"],tips:"Chrome tan is ideal here — soft enough to fold without cracking." },
+  { id:"pencil-roll",name:"Pencil / Pen Roll",icon:"✏️",category:"Stationery",w:[7,14],h:[18,32],thickMin:1,thickMax:2.5,skill:1,time:"45 min–1.5 hrs",sells:"£15–£35",desc:"A rolling pen case with individual slots. Ties closed with a leather lace.",tasks:["Cut","Mark","Glue","Punch Holes","Stitch","Edge Coat"],tips:"Use a wing divider to mark slot lines perfectly even." },
+  { id:"glasses-case",name:"Glasses Case",icon:"👓",category:"Accessories",w:[8,18],h:[14,24],thickMin:1.5,thickMax:3,skill:2,time:"1.5–2.5 hrs",sells:"£30–£65",desc:"A folded or box-style glasses case. Line with suede to protect lenses.",tasks:["Cut","Skive","Glue","Mark","Punch Holes","Stitch","Hardware","Burnish"],tips:"Line the inside with a thin suede offcut — this one step doubles perceived quality." },
+  { id:"phone-sleeve",name:"Phone Sleeve",icon:"📱",category:"Tech",w:[7,14],h:[14,22],thickMin:1,thickMax:2.5,skill:2,time:"1–2 hrs",sells:"£25–£55",desc:"A slip-in phone sleeve. Measure your specific model first.",tasks:["Cut","Skive","Mark","Glue","Punch Holes","Stitch","Edge Coat","Burnish"],tips:"Add 4mm to each phone dimension for clearance, extra if they use a case." },
+  { id:"notebook-cover",name:"Notebook Cover",icon:"📓",category:"Stationery",w:[14,32],h:[20,44],thickMin:1.5,thickMax:3.5,skill:2,time:"2–4 hrs",sells:"£40–£110",desc:"A refillable cover for A5 or A6 notebooks. Pen loop and card slot optional.",tasks:["Cut","Skive","Mark","Glue","Punch Holes","Stitch","Edge Coat","Burnish"],tips:"Make the elastic band slightly tight when new — it loosens with use." },
+  { id:"belt",name:"Belt",icon:"👔",category:"Wearable",w:[3,5],h:[80,145],thickMin:3,thickMax:5,skill:1,time:"1–2 hrs",sells:"£35–£90",desc:"A classic single-piece belt. High value for minimal construction.",tasks:["Cut","Mark","Punch Holes","Dye","Edge Coat","Burnish","Hardware"],tips:"Cut with a strap cutter for perfectly parallel edges — hand cutting rarely stays true over 100cm." },
+  { id:"bag-strap",name:"Bag Strap",icon:"👜",category:"Bags",w:[3,6],h:[40,90],thickMin:2.5,thickMax:5,skill:2,time:"1–2 hrs",sells:"£20–£55",desc:"A replacement or custom bag strap with adjustable slide hardware.",tasks:["Cut","Mark","Punch Holes","Dye","Edge Coat","Burnish","Hardware"],tips:"Fold and glue the edges before stitching for a rounded profile." },
+  { id:"valet-tray",name:"Desk / Valet Tray",icon:"🖼️",category:"Home",w:[15,40],h:[10,30],thickMin:2,thickMax:5,skill:1,time:"30 min–1.5 hrs",sells:"£25–£70",desc:"A flat or folded-corner valet tray. Great for thick veg tan.",tasks:["Cut","Mark","Dye","Edge Coat","Burnish"],tips:"Wet-mould the corners by wetting and clamping over a box — they hold shape permanently." },
+  { id:"cable-tidy",name:"Cable Tidy",icon:"🔌",category:"Tech",w:[3,8],h:[8,20],thickMin:1,thickMax:2.5,skill:1,time:"20–40 min",sells:"£8–£22",desc:"A snap-close wrap for earphones or charging cables. Excellent for gift sets.",tasks:["Cut","Mark","Punch Holes","Hardware","Edge Coat"],tips:"Make these in batches of 10 — ideal craft market impulse buys." },
+  { id:"monogram-tag",name:"Monogram Tag",icon:"🔤",category:"Gifts",w:[4,9],h:[6,12],thickMin:2,thickMax:4,skill:1,time:"30–60 min",sells:"£12–£30",desc:"A thick stamped name or initial tag with a split ring.",tasks:["Cut","Mark","Punch Holes","Dye","Edge Coat","Burnish"],tips:"Stamp initials while the leather is cased (slightly damp) for crisp deep impressions." },
+  { id:"bifold-wallet",name:"Bifold Wallet",icon:"💰",category:"Everyday Carry",w:[10,22],h:[9,15],thickMin:1,thickMax:2,skill:3,time:"3–6 hrs",sells:"£45–£120",desc:"A classic bifold with card slots and a note section. The benchmark project.",tasks:["Cut","Skive","Mark","Glue","Punch Holes","Stitch","Edge Coat","Burnish"],tips:"Skive everything to 0.6mm before assembly. A thick wallet is always a beginner tell." },
+  { id:"zip-pouch",name:"Zip Pouch",icon:"🤐",category:"Everyday Carry",w:[12,25],h:[9,18],thickMin:1,thickMax:2.5,skill:3,time:"2–4 hrs",sells:"£35–£85",desc:"A zipped leather pouch. Requires confident zip-setting skill.",tasks:["Cut","Skive","Glue","Mark","Punch Holes","Stitch","Hardware","Edge Coat"],tips:"Glue the zip tape to the leather before stitching — never try to hold it with clips." },
+  { id:"dog-collar",name:"Dog Collar",icon:"🐕",category:"Pet",w:[2.5,5],h:[25,60],thickMin:2.5,thickMax:5,skill:1,time:"45 min–1.5 hrs",sells:"£20–£55",desc:"A sturdy single-piece dog collar with D-ring and buckle.",tasks:["Cut","Mark","Punch Holes","Dye","Edge Coat","Burnish","Hardware"],tips:"Add 3 holes either side of the measured fit for adjustment. Use 4–5mm veg tan for larger dogs." },
+];
+
+const SCRAP_CATS = ["All","Everyday Carry","Wearable","Gifts","Stationery","Accessories","Tech","Home","Travel","Bags","Pet"];
+const SKILL_LABEL = ["","Beginner","Intermediate","Advanced"];
+const SKILL_COLOR = ["","#2D5C2A","#6B4C10","#6A1818"];
+
+/* ══════════════════════════════════════════════════════════
+   SAMPLE DATA
+══════════════════════════════════════════════════════════ */
+const uid = () => Math.random().toString(36).slice(2,9);
+
+const SAMPLE_PROJECTS = [{
+  id:uid(), name:"Classic Bifold Wallet", client:"Personal",
+  leatherType:"Veg Tan", thickness:"2mm", thread:"Waxed linen — natural", needle:"John James No.2",
+  status:"in-progress",
+  notes:"First bifold. Natural veg tan, saddle stitched with linen thread.\n\nWorkshop tip: Skive everything to 0.6mm before assembly. A thick wallet is always a beginner tell.",
+  markup:2.5,
+  tasks:[
+    { id:uid(),name:"Cut",icon:"✂️",seconds:1240,notes:"Rotary cutter on cutting mat.",done:false },
+    { id:uid(),name:"Skive",icon:"🔪",seconds:840,notes:"Card slots skived to 1mm.",done:false },
+    { id:uid(),name:"Glue",icon:"🧴",seconds:0,notes:"",done:false },
+    { id:uid(),name:"Stitch",icon:"🧵",seconds:0,notes:"",done:false },
+  ],
+  materials:[
+    { id:uid(),name:"Veg tan 2mm",qty:"1 sq ft",cost:12 },
+    { id:uid(),name:"Linen thread",qty:"1 reel",cost:4 },
+    { id:uid(),name:"Edge paint",qty:"small",cost:1.5 },
+  ],
+  createdAt: Date.now() - 172800000,
+}];
+
+const SAMPLE_SCRAPS = [
+  { id:uid(),width:14,height:9,thicknessMm:"2",description:"Veg tan offcut, natural" },
+  { id:uid(),width:3,height:24,thicknessMm:"3.5",description:"Dark brown strap cut" },
+  { id:uid(),width:6,height:6,thicknessMm:"1.5",description:"Black chrome tan" },
+];
+
+/* ══════════════════════════════════════════════════════════
+   UTILITIES
+══════════════════════════════════════════════════════════ */
+const fmtTime = s => {
+  const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;
+  if(h>0) return `${h}:${String(m).padStart(2,"0")}:${String(sc).padStart(2,"0")}`;
+  return `${m}:${String(sc).padStart(2,"0")}`;
+};
+const fmtHrs = s => (s/3600).toFixed(1)+"h";
+const totalSecs = tasks => tasks.reduce((a,t)=>a+(t.seconds||0),0);
+const totalCost = mats  => mats.reduce((a,m)=>a+(parseFloat(m.cost)||0),0);
+const suggestProjects = (w,h,thickMm) => {
+  const lo=Math.min(w,h),hi=Math.max(w,h);
+  return SCRAP_PROJECTS.filter(s=>{
+    const ok=(lo>=s.w[0]&&lo<=s.w[1]&&hi>=s.h[0]&&hi<=s.h[1])||(hi>=s.w[0]&&hi<=s.w[1]&&lo>=s.h[0]&&lo<=s.h[1]);
+    if(!ok) return false;
+    if(thickMm&&s.thickMin&&thickMm<s.thickMin) return false;
+    if(thickMm&&s.thickMax&&thickMm>s.thickMax) return false;
+    return true;
+  }).sort((a,b)=>a.skill-b.skill);
+};
+
+/* ══════════════════════════════════════════════════════════
+   DESIGN SYSTEM — Rich & Warm Premium
+══════════════════════════════════════════════════════════ */
+const C = {
+  bg:       "#E9D8A6",  // aged golden parchment
+  card:     "#FAF3DF",  // warm vellum
+  cardDeep: "#F5EBD0",  // slightly deeper card
+  input:    "#FFFDF4",  // almost white for inputs
+  border:   "#BF9848",  // burnished gold border
+  borderSoft:"#D4B870", // lighter gold for subtle lines
+  // Leather tones
+  leather:  "#1C0800",  // deepest mahogany
+  oxblood:  "#4A1200",  // rich dark leather
+  sienna:   "#7A3810",  // mid leather
+  tan:      "#A06528",  // lighter tan accent
+  // Metals
+  gold:     "#8A6C10",  // muted sophisticated gold
+  burnished:"#B8921C",  // brighter gold for highlights
+  // Text
+  ink:      "#140400",  // primary text
+  bark:     "#5A2E10",  // secondary text
+  faded:    "#8A5C30",  // tertiary text
+  // Status
+  sage:     "#1A3D22",  // timer / success
+  sageLight:"#2A5C34",
+  crimson:  "#641414",  // danger
+  amber:    "#8A5A00",  // warning / active
+  // Overlays
+  overlay:  "rgba(20,4,0,0.65)",
+};
+
+/* ══════════════════════════════════════════════════════════
+   ANTLER SVG WORDMARK
+══════════════════════════════════════════════════════════ */
+/* ── CL Stag Logo — faithful recreation of Cernunnos Leatherworks mark ── */
+const CLLogo = ({ size = 48, color = "#C4A030" }) => (
+  <svg width={size} height={size} viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+    {/* Left antler — main stem curving up and left */}
+    <path d="M50 56 C48 46 44 34 37 20 C33 12 28 7 22 4" stroke={color} strokeWidth="4" strokeLinecap="round" fill="none"/>
+    {/* Left antler — upper tip fork */}
+    <path d="M22 4 C17 2 11 4 7 8" stroke={color} strokeWidth="3.5" strokeLinecap="round" fill="none"/>
+    <path d="M25 10 C20 7 16 7 13 10" stroke={color} strokeWidth="3" strokeLinecap="round" fill="none"/>
+    {/* Left antler — mid brow tine */}
+    <path d="M40 30 C34 25 26 24 19 27" stroke={color} strokeWidth="3.5" strokeLinecap="round" fill="none"/>
+    {/* Left antler — lower tine */}
+    <path d="M46 43 C39 39 32 40 27 45" stroke={color} strokeWidth="3" strokeLinecap="round" fill="none"/>
+
+    {/* Right antler — main stem curving up and right */}
+    <path d="M70 56 C72 46 76 34 83 20 C87 12 92 7 98 4" stroke={color} strokeWidth="4" strokeLinecap="round" fill="none"/>
+    {/* Right antler — upper tip fork */}
+    <path d="M98 4 C103 2 109 4 113 8" stroke={color} strokeWidth="3.5" strokeLinecap="round" fill="none"/>
+    <path d="M95 10 C100 7 104 7 107 10" stroke={color} strokeWidth="3" strokeLinecap="round" fill="none"/>
+    {/* Right antler — mid brow tine */}
+    <path d="M80 30 C86 25 94 24 101 27" stroke={color} strokeWidth="3.5" strokeLinecap="round" fill="none"/>
+    {/* Right antler — lower tine */}
+    <path d="M74 43 C81 39 88 40 93 45" stroke={color} strokeWidth="3" strokeLinecap="round" fill="none"/>
+
+    {/* Head — the large circle forming the deer's face/body */}
+    <circle cx="60" cy="82" r="31" stroke={color} strokeWidth="4" fill="none"/>
+
+    {/* Left ear — small curved shape outside the circle */}
+    <path d="M31 66 C25 58 27 50 34 55" stroke={color} strokeWidth="3.5" strokeLinecap="round" fill="none"/>
+    {/* Right ear */}
+    <path d="M89 66 C95 58 93 50 86 55" stroke={color} strokeWidth="3.5" strokeLinecap="round" fill="none"/>
+
+    {/* Eyes — filled almond ovals */}
+    <ellipse cx="46" cy="78" rx="5" ry="3.5" fill={color}/>
+    <ellipse cx="74" cy="78" rx="5" ry="3.5" fill={color}/>
+
+    {/* C — opens to the right, centered left of middle */}
+    <path d="M60 67 C51 67 43 72 43 82 C43 92 51 97 60 97" stroke={color} strokeWidth="4.5" strokeLinecap="round" fill="none"/>
+
+    {/* L — vertical stem then horizontal foot, sits right of C */}
+    <path d="M65 67 L65 97 L77 97" stroke={color} strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+  </svg>
+);
+
+/* Alias for small usage in header */
+const AntlerMark = ({ size=32, color="#C4A030" }) => <CLLogo size={size} color={color}/>;
+
+/* ══════════════════════════════════════════════════════════
+   PRIMITIVE UI COMPONENTS
+══════════════════════════════════════════════════════════ */
+const Btn = ({children,onClick,variant="primary",small,style,disabled})=>{
+  const base={border:"none",cursor:disabled?"not-allowed":"pointer",fontFamily:"inherit",borderRadius:8,fontWeight:600,letterSpacing:"0.03em",transition:"all 0.18s",fontSize:small?12:14,padding:small?"6px 14px":"12px 22px",opacity:disabled?0.45:1};
+  const v={
+    primary:{background:`linear-gradient(160deg,${C.oxblood},${C.leather})`,color:"#FAF0D8",boxShadow:`0 3px 14px rgba(20,4,0,0.32),inset 0 1px 0 rgba(255,255,255,0.08)`},
+    secondary:{background:"transparent",border:`1px solid ${C.border}`,color:C.ink},
+    ghost:{background:"transparent",color:C.sienna},
+    danger:{background:`linear-gradient(160deg,${C.crimson},#3A0A0A)`,color:"#FAF0D8"},
+    success:{background:`linear-gradient(160deg,${C.sage},#0E2A16)`,color:"#E8F5EC"},
+    gold:{background:`linear-gradient(160deg,${C.burnished},${C.gold})`,color:"#FAF0D8"},
+  };
+  return <button onClick={onClick} disabled={disabled} style={{...base,...v[variant],...style}}>{children}</button>;
+};
+
+const Field=({label,value,onChange,placeholder,type="text",rows,hint})=>(
+  <div style={{marginBottom:14}}>
+    {label&&<div style={{fontSize:10,color:C.faded,fontWeight:700,marginBottom:5,textTransform:"uppercase",letterSpacing:"0.1em"}}>{label}</div>}
+    {rows
+      ?<textarea value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} rows={rows}
+          style={{width:"100%",boxSizing:"border-box",padding:"10px 12px",border:`1px solid ${C.borderSoft}`,borderRadius:9,background:C.input,fontFamily:"inherit",fontSize:14,color:C.ink,resize:"vertical",lineHeight:1.65}}/>
+      :<input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder}
+          style={{width:"100%",boxSizing:"border-box",padding:"10px 12px",border:`1px solid ${C.borderSoft}`,borderRadius:9,background:C.input,fontFamily:"inherit",fontSize:14,color:C.ink}}/>
+    }
+    {hint&&<div style={{fontSize:11,color:C.faded,marginTop:4}}>{hint}</div>}
+  </div>
+);
+
+const Card=({children,onClick,style})=>(
+  <div onClick={onClick} style={{background:C.card,border:`1px solid ${C.borderSoft}`,borderRadius:14,padding:16,marginBottom:12,cursor:onClick?"pointer":"default",boxShadow:`0 2px 14px rgba(20,4,0,0.07),inset 0 1px 0 rgba(255,255,255,0.6)`,...style}}>{children}</div>
+);
+
+const Badge=({label,color=C.tan})=>(
+  <span style={{display:"inline-block",fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:20,background:color+"22",color,border:`1px solid ${color}44`,letterSpacing:"0.06em",textTransform:"uppercase"}}>{label}</span>
+);
+
+const Overlay=({children,onClose})=>(
+  <div onClick={onClose} style={{position:"fixed",inset:0,background:C.overlay,zIndex:100,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+    <div onClick={e=>e.stopPropagation()} style={{background:C.card,borderRadius:"22px 22px 0 0",width:"100%",maxWidth:480,maxHeight:"90vh",overflowY:"auto",padding:"26px 20px 40px",boxShadow:`0 -10px 50px rgba(20,4,0,0.28)`}}>{children}</div>
+  </div>
+);
+
+const ModalTitle=({children})=>(
+  <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700,color:C.leather,marginBottom:18,letterSpacing:"-0.01em"}}>{children}</div>
+);
+
+const SubTabs=({tabs,active,onChange})=>(
+  <div style={{display:"flex",gap:2,background:C.bg+"AA",borderRadius:10,padding:3,marginBottom:20}}>
+    {tabs.map(t=>(
+      <button key={t.key} onClick={()=>onChange(t.key)} style={{flex:1,border:"none",borderRadius:8,padding:"8px 4px",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:600,letterSpacing:"0.03em",transition:"all 0.15s",background:active===t.key?C.card:"transparent",color:active===t.key?C.leather:C.bark,boxShadow:active===t.key?`0 1px 6px rgba(20,4,0,0.10),inset 0 1px 0 rgba(255,255,255,0.5)`:"none"}}>{t.label}</button>
+    ))}
+  </div>
+);
+
+const FAB=({onClick,label="+"})=>(
+  <button onClick={onClick} style={{position:"fixed",bottom:90,right:"calc(50% - 228px)",width:54,height:54,borderRadius:27,background:`linear-gradient(145deg,${C.oxblood},${C.leather})`,border:"none",cursor:"pointer",fontSize:26,color:"#FAF0D8",boxShadow:`0 5px 22px rgba(20,4,0,0.4),inset 0 1px 0 rgba(255,255,255,0.1)`,display:"flex",alignItems:"center",justifyContent:"center",zIndex:50}}>{label}</button>
+);
+
+const EmptyState=({icon,heading,sub})=>(
+  <div style={{textAlign:"center",padding:"64px 24px",color:C.bark}}>
+    <div style={{fontSize:42,marginBottom:14,opacity:0.7}}>{icon}</div>
+    <div style={{fontSize:18,fontFamily:"'Cormorant Garamond',serif",fontWeight:700,marginBottom:6,color:C.sienna}}>{heading}</div>
+    <div style={{fontSize:13,lineHeight:1.6}}>{sub}</div>
+  </div>
+);
+
+const Divider=({label})=>(
+  <div style={{display:"flex",alignItems:"center",gap:10,margin:"18px 0 14px"}}>
+    <div style={{flex:1,height:"0.5px",background:C.borderSoft}}/>
+    {label&&<div style={{fontSize:10,color:C.faded,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",whiteSpace:"nowrap"}}>{label}</div>}
+    {label&&<div style={{flex:1,height:"0.5px",background:C.borderSoft}}/>}
+  </div>
+);
+
+const InfoBanner=({children})=>(
+  <div style={{background:C.burnished+"14",border:`1px solid ${C.burnished}44`,borderRadius:10,padding:"11px 14px",marginBottom:16,display:"flex",gap:10,alignItems:"flex-start"}}>
+    <span style={{fontSize:16,flexShrink:0,opacity:0.8}}>💡</span>
+    <div style={{fontSize:13,color:C.ink,lineHeight:1.65}}>{children}</div>
+  </div>
+);
+
+/* ══════════════════════════════════════════════════════════
+   PROJECTS TAB
+══════════════════════════════════════════════════════════ */
+function ProjectsTab({projects,onSelect,onAdd,activeTimer}){
+  const [search,setSearch]=useState("");
+  const totalTime=projects.reduce((a,p)=>a+totalSecs(p.tasks),0);
+  const done=projects.filter(p=>p.status==="complete").length;
+  const filtered=search.trim()?projects.filter(p=>p.name.toLowerCase().includes(search.toLowerCase())||p.client?.toLowerCase().includes(search.toLowerCase())):projects;
+
+  return (
+    <div>
+      {/* Stats strip */}
+      <div style={{display:"flex",gap:8,marginBottom:18}}>
+        {[{label:"Projects",val:projects.length},{label:"Completed",val:done},{label:"Time Logged",val:fmtHrs(totalTime)}].map(s=>(
+          <div key={s.label} style={{flex:1,background:C.card,border:`1px solid ${C.borderSoft}`,borderRadius:12,padding:"12px 0",textAlign:"center",boxShadow:`0 2px 8px rgba(20,4,0,0.06),inset 0 1px 0 rgba(255,255,255,0.5)`}}>
+            <div style={{fontSize:21,fontWeight:700,color:C.leather,fontFamily:"'Cormorant Garamond',serif"}}>{s.val}</div>
+            <div style={{fontSize:9,color:C.faded,textTransform:"uppercase",letterSpacing:"0.09em",fontWeight:700,marginTop:2}}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+      {/* Search */}
+      {projects.length>2&&(
+        <div style={{position:"relative",marginBottom:16}}>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search projects…"
+            style={{width:"100%",boxSizing:"border-box",padding:"10px 12px 10px 36px",border:`1px solid ${C.borderSoft}`,borderRadius:10,background:C.input,fontFamily:"inherit",fontSize:14,color:C.ink,outline:"none"}}/>
+          <div style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:C.faded,fontSize:14}}>🔍</div>
+          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",border:"none",background:"transparent",cursor:"pointer",color:C.faded,fontSize:18,lineHeight:1}}>×</button>}
+        </div>
+      )}
+      {filtered.length===0
+        ?<EmptyState icon="🧵" heading={search?"No matching projects":"No projects yet"} sub={search?"Try a different search term":"Tap + to start your first build"}/>
+        :filtered.map(p=><ProjectCard key={p.id} project={p} onClick={()=>onSelect(p.id)} isRunning={activeTimer?.projectId===p.id}/>)
+      }
+      <FAB onClick={onAdd}/>
+    </div>
+  );
+}
+
+function ProjectCard({project,onClick,isRunning}){
+  const secs=totalSecs(project.tasks);
+  const matCost=totalCost(project.materials);
+  const started=project.tasks.filter(t=>t.seconds>0||t.done).length;
+  const pct=project.tasks.length>0?Math.round((started/project.tasks.length)*100):0;
+  const isComplete=project.status==="complete";
+  return (
+    <div onClick={onClick} style={{background:C.card,border:`1px solid ${isRunning?C.sage:isComplete?C.gold+"55":C.borderSoft}`,borderRadius:14,padding:"14px 16px",marginBottom:10,cursor:"pointer",boxShadow:isRunning?`0 0 0 2px ${C.sage}22,0 3px 16px rgba(20,4,0,0.09)`:`0 3px 16px rgba(20,4,0,0.07),inset 0 1px 0 rgba(255,255,255,0.55)`,position:"relative",overflow:"hidden",transition:"all 0.2s"}}>
+      {isRunning&&<div style={{position:"absolute",top:0,left:0,right:0,height:2.5,background:C.sage,borderRadius:"2px 2px 0 0"}}/>}
+      {isComplete&&<div style={{position:"absolute",top:0,left:0,right:0,height:2.5,background:C.burnished,borderRadius:"2px 2px 0 0"}}/>}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+        <div style={{flex:1,paddingRight:10}}>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:700,color:C.ink,lineHeight:1.2}}>{project.name}</div>
+          {project.client&&<div style={{fontSize:12,color:C.bark,marginTop:3}}>📋 {project.client}</div>}
+        </div>
+        <Badge label={isComplete?"Complete":isRunning?"● Live":"Active"} color={isComplete?C.gold:isRunning?C.sage:C.amber}/>
+      </div>
+      {project.tasks.length>0&&!isComplete&&(
+        <div style={{marginBottom:10}}>
+          <div style={{height:4,background:C.borderSoft+"66",borderRadius:2,overflow:"hidden"}}>
+            <div style={{height:"100%",width:`${pct}%`,background:pct===100?C.sage:C.tan,borderRadius:2,transition:"width 0.4s"}}/>
+          </div>
+          <div style={{fontSize:10,color:C.faded,marginTop:3,fontWeight:600,letterSpacing:"0.04em"}}>{started}/{project.tasks.length} tasks</div>
+        </div>
+      )}
+      <div style={{display:"flex",flexWrap:"wrap",gap:12,fontSize:12,color:C.bark}}>
+        {project.leatherType&&<span>🐄 {project.leatherType}{project.thickness?` · ${project.thickness}`:""}</span>}
+        {secs>0&&<span>⏱ {fmtHrs(secs)}</span>}
+        {matCost>0&&<span>💰 {matCost.toFixed(2)}</span>}
+        <span style={{color:C.faded}}>📌 {project.tasks.length} task{project.tasks.length!==1?"s":""}</span>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════
+   PROJECT DETAIL
+══════════════════════════════════════════════════════════ */
+function ProjectDetail({project,activeTimerId,onTimerToggle,onUpdateProject,onUpdateTask,onDeleteTask,onAddTask,onAddMaterial,onDeleteMaterial,settings,onBack,onDuplicate}){
+  const [pTab,setPTab]=useState("tasks");
+  const secs=totalSecs(project.tasks);
+  const matCost=totalCost(project.materials);
+  const timeCost=(secs/3600)*settings.hourlyRate;
+  const total=matCost+timeCost;
+  const markup=project.markup||settings.priceMultiplier;
+  const suggested=total*markup;
+  return (
+    <div>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,paddingTop:4}}>
+        <button onClick={onBack} style={{border:"none",background:"transparent",fontSize:20,cursor:"pointer",color:C.leather,padding:"4px 6px",borderRadius:8}}>←</button>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:700,color:C.ink,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{project.name}</div>
+          {project.client&&<div style={{fontSize:12,color:C.bark}}>{project.client}</div>}
+        </div>
+        <button onClick={onDuplicate} title="Duplicate project" style={{border:`1px solid ${C.borderSoft}`,background:C.card,borderRadius:8,padding:"6px 10px",cursor:"pointer",fontSize:13,color:C.bark,fontFamily:"inherit"}}>⧉</button>
+        <select value={project.status} onChange={e=>onUpdateProject({status:e.target.value})} style={{border:`1px solid ${C.borderSoft}`,borderRadius:8,padding:"6px 8px",background:C.card,fontFamily:"inherit",fontSize:12,color:C.ink,cursor:"pointer"}}>
+          <option value="in-progress">Active</option>
+          <option value="complete">Complete ✓</option>
+        </select>
+      </div>
+      <SubTabs tabs={[{key:"tasks",label:"Tasks"},{key:"costs",label:"Costs"},{key:"notes",label:"Notes"}]} active={pTab} onChange={setPTab}/>
+      {pTab==="tasks"&&<TasksTab project={project} activeTimerId={activeTimerId} onTimerToggle={onTimerToggle} onUpdateTask={onUpdateTask} onDeleteTask={onDeleteTask} onAddTask={onAddTask}/>}
+      {pTab==="costs"&&<CostsTab project={project} settings={settings} secs={secs} matCost={matCost} timeCost={timeCost} total={total} suggested={suggested} markup={markup} onSetMarkup={v=>onUpdateProject({markup:v})} onAddMaterial={onAddMaterial} onDeleteMaterial={onDeleteMaterial}/>}
+      {pTab==="notes"&&<NotesTab project={project} onUpdateProject={onUpdateProject}/>}
+    </div>
+  );
+}
+
+function TasksTab({project,activeTimerId,onTimerToggle,onUpdateTask,onDeleteTask,onAddTask}){
+  const totalTime=totalSecs(project.tasks);
+  return (
+    <div>
+      <InfoBanner>
+        <strong>Track your time, know your worth.</strong> Every second logged feeds your pricing — so you never undersell. Tap <strong>▶</strong> to start, or <strong>✎</strong> to enter time manually. Expand a task for technique guidance and your notes.
+      </InfoBanner>
+      {totalTime>0&&(
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:C.cardDeep,borderRadius:9,padding:"8px 14px",marginBottom:14,border:`1px solid ${C.borderSoft}44`}}>
+          <span style={{fontSize:11,fontWeight:700,color:C.faded,textTransform:"uppercase",letterSpacing:"0.08em"}}>Total time logged</span>
+          <span style={{fontSize:18,fontFamily:"'Courier New',monospace",fontWeight:700,color:C.sienna}}>{fmtTime(totalTime)}</span>
+        </div>
+      )}
+      {project.tasks.length===0
+        ?<EmptyState icon="✂️" heading="No tasks yet" sub="Add tasks to start tracking your build"/>
+        :project.tasks.map(t=>(
+            <TaskCard key={t.id} task={t} isActive={activeTimerId===t.id}
+              onToggleTimer={()=>onTimerToggle(t.id)}
+              onUpdateTask={u=>onUpdateTask(t.id,u)}
+              onDelete={()=>onDeleteTask(t.id)}/>
+          ))
+      }
+      <Btn onClick={onAddTask} style={{width:"100%",marginTop:8}} variant="secondary">+ Add Task</Btn>
+    </div>
+  );
+}
+
+function TaskCard({task,isActive,onToggleTimer,onUpdateTask,onDelete}){
+  const [expanded,setExpanded]=useState(false);
+  const [editingTime,setEditingTime]=useState(false);
+  const [mHrs,setMHrs]=useState("");
+  const [mMins,setMins]=useState("");
+  const preset=TASK_PRESETS.find(p=>p.name===task.name);
+  const hasDone=task.seconds>0||task.done;
+
+  const saveManual=()=>{
+    const total=Math.round(((parseFloat(mHrs)||0)*3600)+((parseFloat(mMins)||0)*60));
+    if(total>=0) onUpdateTask({seconds:total});
+    setEditingTime(false); setMHrs(""); setMins("");
+  };
+
+  const borderColor=isActive?C.sage:task.done?C.gold:hasDone?C.sage+"88":C.borderSoft;
+
+  return (
+    <div style={{background:C.card,borderRadius:12,marginBottom:9,overflow:"hidden",border:`1px solid ${borderColor}`,boxShadow:isActive?`0 0 0 2px ${C.sage}18,0 2px 10px rgba(20,4,0,0.06)`:`0 2px 10px rgba(20,4,0,0.05)`,transition:"all 0.2s"}}>
+      <div style={{display:"flex",alignItems:"center",padding:"12px 14px",gap:12}}>
+        {/* Done checkbox */}
+        <button onClick={()=>onUpdateTask({done:!task.done})} style={{width:26,height:26,borderRadius:6,border:`1.5px solid ${task.done?C.gold:C.borderSoft}`,background:task.done?C.burnished+"22":"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.18s"}}>
+          {task.done&&<span style={{fontSize:13,color:C.gold,fontWeight:700}}>✓</span>}
+        </button>
+        <div style={{fontSize:22,lineHeight:1,flexShrink:0,opacity:task.done?0.5:1}}>{task.icon}</div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontWeight:600,color:task.done?C.bark:C.ink,fontSize:14,marginBottom:5,textDecoration:task.done?"line-through":"none"}}>{task.name}</div>
+          {editingTime?(
+            <div>
+              <div style={{fontSize:10,color:C.faded,fontWeight:700,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.08em"}}>Enter time manually</div>
+              <div style={{display:"flex",alignItems:"center",gap:7,flexWrap:"wrap"}}>
+                {[{v:mHrs,set:setMHrs,label:"hrs"},{v:mMins,set:setMins,label:"min"}].map(f=>(
+                  <div key={f.label} style={{display:"flex",alignItems:"center",gap:4}}>
+                    <input type="number" value={f.v} onChange={e=>f.set(e.target.value)} placeholder="0" min="0"
+                      style={{width:48,padding:"5px 7px",border:`1px solid ${C.borderSoft}`,borderRadius:7,fontSize:14,fontFamily:"inherit",textAlign:"center",background:C.input}}/>
+                    <span style={{fontSize:11,color:C.faded,fontWeight:600}}>{f.label}</span>
+                  </div>
+                ))}
+                <Btn small onClick={saveManual} variant="success">Save</Btn>
+                <Btn small variant="ghost" onClick={()=>setEditingTime(false)}>✕</Btn>
+              </div>
+            </div>
+          ):(
+            <div style={{display:"flex",alignItems:"center",gap:9}}>
+              <span style={{fontSize:19,fontFamily:"'Courier New',monospace",fontWeight:700,color:isActive?C.sage:hasDone?C.sageLight:C.bark,letterSpacing:"0.02em"}}>{fmtTime(task.seconds)}</span>
+              <button onClick={()=>setEditingTime(true)} style={{border:`1px solid ${C.borderSoft}`,borderRadius:5,background:C.bg,padding:"2px 8px",cursor:"pointer",fontSize:10,color:C.faded,fontWeight:700,fontFamily:"inherit",letterSpacing:"0.04em"}}>✎ edit</button>
+            </div>
+          )}
+        </div>
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,flexShrink:0}}>
+          <button onClick={onToggleTimer} style={{width:44,height:44,borderRadius:22,border:"none",cursor:"pointer",background:isActive?`linear-gradient(145deg,${C.sage},#0E2A16)`:`linear-gradient(145deg,${C.oxblood},${C.leather})`,color:"#FAF0D8",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:isActive?`0 0 16px ${C.sage}55,0 2px 8px rgba(20,4,0,0.3)`:`0 3px 10px rgba(20,4,0,0.28)`,transition:"all 0.2s"}}>
+            {isActive?"⏸":"▶"}
+          </button>
+          <button onClick={()=>setExpanded(x=>!x)} style={{border:"none",background:"transparent",cursor:"pointer",color:C.faded,fontSize:10,padding:2,fontFamily:"inherit",fontWeight:600,letterSpacing:"0.04em"}}>
+            {expanded?"▲":"▼ more"}
+          </button>
+        </div>
+      </div>
+      {expanded&&(
+        <div style={{borderTop:`1px solid ${C.borderSoft}44`,background:C.cardDeep}}>
+          {preset?.guidance&&(
+            <div style={{padding:"14px 16px 12px",borderBottom:`1px dashed ${C.borderSoft}66`}}>
+              <div style={{fontSize:10,fontWeight:800,color:C.tan,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>Technique</div>
+              <div style={{fontSize:13,color:C.ink,lineHeight:1.8}}>{preset.guidance}</div>
+            </div>
+          )}
+          <div style={{padding:"12px 16px 14px"}}>
+            <div style={{fontSize:10,color:C.faded,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:6}}>Your Notes</div>
+            <textarea value={task.notes||""} onChange={e=>onUpdateTask({notes:e.target.value})}
+              placeholder="Observations, issues, things to remember…" rows={3}
+              style={{width:"100%",boxSizing:"border-box",border:`1px solid ${C.borderSoft}`,borderRadius:8,padding:"8px 10px",fontFamily:"inherit",fontSize:13,background:C.input,color:C.ink,resize:"none",lineHeight:1.6}}/>
+            <Btn small variant="danger" onClick={onDelete} style={{marginTop:8}}>Delete Task</Btn>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CostsTab({project,settings,secs,matCost,timeCost,total,suggested,markup,onSetMarkup,onAddMaterial,onDeleteMaterial}){
+  const margin=suggested-total;
+  const marginPct=total>0?Math.round((margin/suggested)*100):0;
+  return (
+    <div>
+      <Card style={{background:`linear-gradient(160deg,${C.leather}0A,${C.oxblood}08)`,borderColor:C.border+"66"}}>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:700,color:C.leather,marginBottom:14}}>Cost Summary</div>
+        {[
+          {label:"Materials",val:`${settings.currency}${matCost.toFixed(2)}`},
+          {label:`Time · ${fmtHrs(secs)} @ ${settings.currency}${settings.hourlyRate}/hr`,val:`${settings.currency}${timeCost.toFixed(2)}`},
+          {label:"Total Cost",val:`${settings.currency}${total.toFixed(2)}`,bold:true},
+          {label:`Suggested Price (×${markup})`,val:`${settings.currency}${suggested.toFixed(2)}`,gold:true},
+          {label:"Potential Margin",val:`${settings.currency}${margin.toFixed(2)} · ${marginPct}%`,green:true},
+        ].map(r=>(
+          <div key={r.label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${C.borderSoft}44`}}>
+            <span style={{fontSize:12,color:C.bark}}>{r.label}</span>
+            <span style={{fontWeight:r.bold||r.gold||r.green?700:500,fontSize:r.gold?18:14,color:r.gold?C.burnished:r.green?C.sage:C.ink}}>{r.val}</span>
+          </div>
+        ))}
+        {/* Per-project markup override */}
+        <div style={{marginTop:14,paddingTop:12,borderTop:`1px dashed ${C.borderSoft}`}}>
+          <div style={{fontSize:10,color:C.faded,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Price Multiplier for this project</div>
+          <div style={{display:"flex",gap:7}}>
+            {["2","2.5","3","3.5","4"].map(m=>(
+              <button key={m} onClick={()=>onSetMarkup(parseFloat(m))} style={{border:`1px solid ${String(markup)===m?C.leather:C.borderSoft}`,borderRadius:7,padding:"6px 10px",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700,background:String(markup)===m?C.leather:C.card,color:String(markup)===m?"#FAF0D8":C.bark,transition:"all 0.15s"}}>×{m}</button>
+            ))}
+          </div>
+        </div>
+      </Card>
+      <Divider label="Materials"/>
+      {project.materials.length===0&&<div style={{fontSize:13,color:C.bark,marginBottom:12,fontStyle:"italic"}}>No materials added yet.</div>}
+      {project.materials.map(m=>(
+        <div key={m.id} style={{display:"flex",alignItems:"center",background:C.card,border:`1px solid ${C.borderSoft}`,borderRadius:10,padding:"10px 14px",marginBottom:8,gap:10}}>
+          <div style={{flex:1}}>
+            <div style={{fontWeight:600,color:C.ink,fontSize:13}}>{m.name}</div>
+            {m.qty&&<div style={{fontSize:11,color:C.bark}}>{m.qty}</div>}
+          </div>
+          <div style={{fontWeight:700,color:C.sienna,fontSize:15}}>{settings.currency}{parseFloat(m.cost||0).toFixed(2)}</div>
+          <button onClick={()=>onDeleteMaterial(m.id)} style={{border:"none",background:"transparent",color:C.crimson,cursor:"pointer",fontSize:18,lineHeight:1}}>×</button>
+        </div>
+      ))}
+      <Btn onClick={onAddMaterial} style={{width:"100%",marginTop:4}} variant="secondary">+ Add Material</Btn>
+    </div>
+  );
+}
+
+function NotesTab({project,onUpdateProject}){
+  return (
+    <div>
+      <div style={{display:"flex",gap:10}}>
+        <div style={{flex:1}}><Field label="Leather Type" value={project.leatherType||""} placeholder="Veg Tan, Chrome Tan…" onChange={v=>onUpdateProject({leatherType:v})}/></div>
+        <div style={{flex:1}}><Field label="Thickness" value={project.thickness||""} placeholder="2mm, 3–4oz…" onChange={v=>onUpdateProject({thickness:v})}/></div>
+      </div>
+      <div style={{display:"flex",gap:10}}>
+        <div style={{flex:1}}><Field label="Thread" value={project.thread||""} placeholder="Waxed linen, natural" onChange={v=>onUpdateProject({thread:v})}/></div>
+        <div style={{flex:1}}><Field label="Needle" value={project.needle||""} placeholder="John James No.2" onChange={v=>onUpdateProject({needle:v})}/></div>
+      </div>
+      <Field label="Client" value={project.client||""} placeholder="Name or 'Personal'" onChange={v=>onUpdateProject({client:v})}/>
+      <Field label="Build Notes" value={project.notes||""} placeholder="Observations, tips, things to remember…" onChange={v=>onUpdateProject({notes:v})} rows={9}/>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════
+   SCRAPS TAB
+══════════════════════════════════════════════════════════ */
+function ScrapsTab({scraps,onAdd,onDelete,onStartProject}){
+  const [view,setView]=useState("scraps");
+  const [catFilter,setCatFilter]=useState("All");
+  const [selectedProj,setSelectedProj]=useState(null);
+
+  if(selectedProj) return <ScrapProjectDetail proj={selectedProj} onClose={()=>setSelectedProj(null)} onStart={()=>{onStartProject(selectedProj);setSelectedProj(null);}}/>;
+
+  const totalPossible=scraps.reduce((a,s)=>a+suggestProjects(s.width,s.height,parseFloat(s.thicknessMm)||undefined).length,0);
+  return (
+    <div>
+      <div style={{background:`linear-gradient(145deg,${C.leather} 0%,${C.oxblood} 100%)`,borderRadius:16,padding:"20px 18px",marginBottom:20,position:"relative",overflow:"hidden",boxShadow:`0 6px 28px rgba(20,4,0,0.22)`}}>
+        <div style={{position:"absolute",right:-10,top:-15,fontSize:90,opacity:0.06,transform:"rotate(-12deg)",userSelect:"none",lineHeight:1}}>✂️</div>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:800,color:"#FAF0D8",marginBottom:6,letterSpacing:"-0.01em"}}>Scrap Bin</div>
+        <div style={{fontSize:13,color:"#FAF0D8BB",lineHeight:1.6,maxWidth:270}}>Log your offcuts and discover what you can build with what you have.</div>
+        <div style={{display:"flex",gap:10,marginTop:14}}>
+          {[{label:"Pieces",val:scraps.length},{label:"Possible Builds",val:totalPossible},{label:"Project Types",val:SCRAP_PROJECTS.length}].map(s=>(
+            <div key={s.label} style={{background:"#FAF0D818",borderRadius:10,padding:"10px 0",flex:1,textAlign:"center",border:"1px solid rgba(255,240,216,0.12)"}}>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:800,color:"#FAF0D8"}}>{s.val}</div>
+              <div style={{fontSize:9,color:"#FAF0D888",textTransform:"uppercase",letterSpacing:"0.08em",fontWeight:700}}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <SubTabs tabs={[{key:"scraps",label:"My Scraps"},{key:"browse",label:"Browse All"}]} active={view} onChange={setView}/>
+      {view==="scraps"&&(
+        <>
+          {scraps.length===0?<EmptyState icon="✂️" heading="No scraps logged" sub="Add an offcut to discover what you can build from it"/>
+            :scraps.map(s=><ScrapCard key={s.id} scrap={s} onDelete={()=>onDelete(s.id)} onSelectProject={setSelectedProj}/>)}
+          <FAB onClick={onAdd}/>
+        </>
+      )}
+      {view==="browse"&&<BrowseProjects filter={catFilter} setFilter={setCatFilter} onSelect={setSelectedProj}/>}
+    </div>
+  );
+}
+
+function ScrapCard({scrap,onDelete,onSelectProject}){
+  const [expanded,setExpanded]=useState(false);
+  const thick=parseFloat(scrap.thicknessMm)||undefined;
+  const suggestions=suggestProjects(scrap.width,scrap.height,thick);
+  const area=((scrap.width*scrap.height)/929).toFixed(2);
+  const mxD=68,ratio=scrap.width/scrap.height;
+  const pw=ratio>=1?mxD:mxD*ratio, ph=ratio<1?mxD:mxD/ratio;
+  const desc=scrap.description?.toLowerCase()||"";
+  const hue=desc.includes("black")?"#1A1008":desc.includes("veg")?"#B8883A":desc.includes("suede")?"#8A6040":desc.includes("dark")?"#3A1A08":"#A06528";
+  return (
+    <div style={{background:C.card,border:`1px solid ${C.borderSoft}`,borderRadius:16,marginBottom:14,overflow:"hidden",boxShadow:`0 3px 18px rgba(20,4,0,0.08),inset 0 1px 0 rgba(255,255,255,0.5)`}}>
+      <div style={{display:"flex",gap:14,padding:"16px"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",minWidth:78}}>
+          <div style={{width:pw,height:ph,background:hue,borderRadius:5,position:"relative",flexShrink:0,boxShadow:`inset 0 2px 8px rgba(255,255,255,0.12),inset 0 -3px 8px rgba(0,0,0,0.32),2px 4px 10px rgba(20,4,0,0.22)`,backgroundImage:"repeating-linear-gradient(40deg,transparent,transparent 3px,rgba(255,255,255,0.03) 3px,rgba(255,255,255,0.03) 6px)"}}>
+            <div style={{position:"absolute",bottom:2,right:3,fontSize:7,color:"rgba(255,255,255,0.3)",fontWeight:700,letterSpacing:"0.05em"}}>{scrap.width}×{scrap.height}</div>
+          </div>
+        </div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+            <div>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:19,fontWeight:700,color:C.ink}}>{scrap.width} × {scrap.height} cm</div>
+              <div style={{fontSize:12,color:C.bark,marginTop:2}}>{[scrap.thicknessMm&&`${scrap.thicknessMm}mm`,scrap.description].filter(Boolean).join(" · ")}</div>
+              <div style={{fontSize:11,color:C.tan,marginTop:4,fontWeight:600}}>≈ {area} sq ft</div>
+            </div>
+            <button onClick={onDelete} style={{border:"none",background:"transparent",color:C.crimson,cursor:"pointer",fontSize:18,lineHeight:1,padding:4}}>×</button>
+          </div>
+          <div style={{marginTop:10}}>
+            {suggestions.length===0
+              ?<div style={{fontSize:12,color:C.faded,fontStyle:"italic"}}>No standard project fits this exact size — try adjusting dimensions.</div>
+              :<div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                {suggestions.slice(0,3).map(p=>(
+                  <button key={p.id} onClick={()=>onSelectProject(p)} style={{border:`1px solid ${C.borderSoft}`,borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,cursor:"pointer",background:C.cardDeep,color:C.leather,fontFamily:"inherit",letterSpacing:"0.02em"}}>{p.icon} {p.name}</button>
+                ))}
+                {suggestions.length>3&&<button onClick={()=>setExpanded(true)} style={{border:`1px solid ${C.burnished}66`,borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,cursor:"pointer",background:C.burnished+"14",color:C.burnished,fontFamily:"inherit"}}>+{suggestions.length-3} more</button>}
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+      {suggestions.length>0&&(
+        <>
+          <button onClick={()=>setExpanded(x=>!x)} style={{width:"100%",border:"none",borderTop:`1px solid ${C.borderSoft}55`,background:C.cardDeep+"AA",padding:"9px 16px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",fontFamily:"inherit",fontSize:12,fontWeight:700,color:C.bark,letterSpacing:"0.03em"}}>
+            <span>🔍 {expanded?"Hide":"Show all"} {suggestions.length} possible build{suggestions.length!==1?"s":""}</span>
+            <span style={{fontSize:10}}>{expanded?"▲":"▼"}</span>
+          </button>
+          {expanded&&(
+            <div style={{borderTop:`1px solid ${C.borderSoft}33`,padding:"10px 14px 4px"}}>
+              {suggestions.map(p=><SuggestionRow key={p.id} proj={p} onSelect={onSelectProject}/>)}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function SuggestionRow({proj,onSelect}){
+  return (
+    <div onClick={()=>onSelect(proj)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 6px",borderBottom:`1px solid ${C.borderSoft}33`,cursor:"pointer"}}>
+      <div style={{fontSize:24,width:34,textAlign:"center",flexShrink:0}}>{proj.icon}</div>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontWeight:700,color:C.ink,fontSize:14}}>{proj.name}</div>
+        <div style={{fontSize:11,color:C.bark,marginTop:2}}>{proj.category} · {proj.time}</div>
+      </div>
+      <div style={{textAlign:"right",flexShrink:0}}>
+        <Badge label={SKILL_LABEL[proj.skill]} color={SKILL_COLOR[proj.skill]}/>
+        <div style={{fontSize:11,color:C.burnished,fontWeight:700,marginTop:4}}>{proj.sells}</div>
+      </div>
+      <div style={{color:C.bark,fontSize:14,flexShrink:0}}>›</div>
+    </div>
+  );
+}
+
+function BrowseProjects({filter,setFilter,onSelect}){
+  const filtered=filter==="All"?SCRAP_PROJECTS:SCRAP_PROJECTS.filter(p=>p.category===filter);
+  return (
+    <div>
+      <div style={{fontSize:13,color:C.bark,marginBottom:14,lineHeight:1.6}}>Explore all {SCRAP_PROJECTS.length} project types. Tap any for the full build guide.</div>
+      <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:8,marginBottom:14}}>
+        {SCRAP_CATS.map(cat=>(
+          <button key={cat} onClick={()=>setFilter(cat)} style={{border:`1px solid ${filter===cat?C.leather:C.borderSoft}`,borderRadius:20,padding:"5px 13px",fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",fontFamily:"inherit",flexShrink:0,letterSpacing:"0.04em",background:filter===cat?C.leather:C.card,color:filter===cat?"#FAF0D8":C.bark}}>{cat}</button>
+        ))}
+      </div>
+      {filtered.map(p=><SuggestionRow key={p.id} proj={p} onSelect={onSelect}/>)}
+    </div>
+  );
+}
+
+function ScrapProjectDetail({proj,onClose,onStart}){
+  return (
+    <div>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
+        <button onClick={onClose} style={{border:"none",background:"transparent",fontSize:20,cursor:"pointer",color:C.leather}}>←</button>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:700,color:C.ink}}>Build Guide</div>
+      </div>
+      <div style={{background:`linear-gradient(145deg,${C.leather},${C.oxblood})`,borderRadius:18,padding:"22px 20px",marginBottom:18,boxShadow:`0 8px 32px rgba(20,4,0,0.28)`}}>
+        <div style={{fontSize:48,marginBottom:10}}>{proj.icon}</div>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontWeight:800,color:"#FAF0D8",marginBottom:4,letterSpacing:"-0.02em"}}>{proj.name}</div>
+        <div style={{fontSize:12,color:"#FAF0D8AA",marginBottom:16,textTransform:"uppercase",letterSpacing:"0.08em"}}>{proj.category}</div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          <span style={{background:"#FAF0D814",border:"1px solid rgba(255,240,216,0.15)",borderRadius:20,padding:"5px 13px",fontSize:11,fontWeight:700,color:"#FAF0D8"}}>⏱ {proj.time}</span>
+          <span style={{background:SKILL_COLOR[proj.skill]+"33",border:`1px solid ${SKILL_COLOR[proj.skill]}66`,borderRadius:20,padding:"5px 13px",fontSize:11,fontWeight:700,color:"#FAF0D8"}}>{SKILL_LABEL[proj.skill]}</span>
+          <span style={{background:C.burnished+"33",border:`1px solid ${C.burnished}55`,borderRadius:20,padding:"5px 13px",fontSize:11,fontWeight:700,color:"#FAF0D8"}}>💰 {proj.sells}</span>
+        </div>
+      </div>
+      <Card><div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,fontWeight:700,color:C.ink,marginBottom:8}}>About this project</div><div style={{fontSize:13,color:C.bark,lineHeight:1.8}}>{proj.desc}</div></Card>
+      <Card>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,fontWeight:700,color:C.ink,marginBottom:12}}>📐 Leather Requirements</div>
+        {[{label:"Piece size",val:`${proj.w[0]}–${proj.w[1]} × ${proj.h[0]}–${proj.h[1]} cm`},proj.thickMin&&{label:"Thickness",val:`${proj.thickMin}–${proj.thickMax}mm`}].filter(Boolean).map(r=>(
+          <div key={r.label} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.borderSoft}44`}}>
+            <span style={{fontSize:12,color:C.bark}}>{r.label}</span>
+            <span style={{fontSize:12,fontWeight:700,color:C.ink}}>{r.val}</span>
+          </div>
+        ))}
+      </Card>
+      <Card>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,fontWeight:700,color:C.ink,marginBottom:12}}>🛠 Suggested Task Order</div>
+        <div style={{display:"flex",flexDirection:"column",gap:5}}>
+          {proj.tasks.map((t,i)=>{
+            const pr=TASK_PRESETS.find(p=>p.name===t)||{icon:"🔧",guidance:""};
+            return (
+              <div key={t} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"8px 10px",background:C.cardDeep,borderRadius:9}}>
+                <div style={{fontSize:10,fontWeight:800,color:C.faded,width:16,textAlign:"right",marginTop:4,flexShrink:0}}>{i+1}</div>
+                <div style={{fontSize:18,flexShrink:0,marginTop:2}}>{pr.icon}</div>
+                <div><div style={{fontSize:13,fontWeight:700,color:C.ink}}>{t}</div>{pr.guidance&&<div style={{fontSize:11,color:C.bark,marginTop:3,lineHeight:1.6}}>{pr.guidance.split(".")[0]}.</div>}</div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+      <div style={{background:C.burnished+"14",border:`1px solid ${C.burnished}44`,borderRadius:14,padding:"16px",marginBottom:20}}>
+        <div style={{fontSize:10,fontWeight:800,color:C.burnished,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>Workshop Tip</div>
+        <div style={{fontSize:13,color:C.ink,lineHeight:1.75}}>{proj.tips}</div>
+      </div>
+      <Btn onClick={onStart} style={{width:"100%",fontSize:16,padding:"14px 0"}}>Start This Project →</Btn>
+      <div style={{textAlign:"center",fontSize:11,color:C.faded,marginTop:8}}>Creates a project with these tasks pre-loaded</div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════
+   KNOWLEDGE TAB
+══════════════════════════════════════════════════════════ */
+function KnowledgeTab(){
+  const [article,setArticle]=useState(null);
+  const [tag,setTag]=useState("All");
+  const tags=["All",...new Set(KNOWLEDGE_TOPICS.map(t=>t.tag))];
+  const fetchArticle=async(topic)=>{
+    setArticle({title:topic.title,loading:true});
+    try{
+      const r=await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(topic.wiki)}`);
+      const d=await r.json();
+      setArticle({title:topic.title,extract:d.extract||"No summary available.",thumbnail:d.thumbnail?.source});
+    }catch{
+      setArticle({title:topic.title,extract:"Could not load article.",error:true});
+    }
+  };
+  const filtered=tag==="All"?KNOWLEDGE_TOPICS:KNOWLEDGE_TOPICS.filter(t=>t.tag===tag);
+  return (
+    <div>
+      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700,color:C.ink,marginBottom:4,letterSpacing:"-0.01em"}}>Knowledge</div>
+      <div style={{fontSize:13,color:C.bark,marginBottom:16,lineHeight:1.5}}>Leathercraft reference — powered by Wikipedia.</div>
+      <div style={{display:"flex",gap:7,overflowX:"auto",paddingBottom:6,marginBottom:16}}>
+        {tags.map(t=>(
+          <button key={t} onClick={()=>setTag(t)} style={{border:`1px solid ${tag===t?C.leather:C.borderSoft}`,borderRadius:20,padding:"5px 14px",fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",fontFamily:"inherit",background:tag===t?C.leather:C.card,color:tag===t?"#FAF0D8":C.bark,flexShrink:0,letterSpacing:"0.04em"}}>{t}</button>
+        ))}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+        {filtered.map(topic=>(
+          <div key={topic.wiki} onClick={()=>fetchArticle(topic)} style={{background:C.card,border:`1px solid ${C.borderSoft}`,borderRadius:12,padding:"13px",cursor:"pointer",boxShadow:`0 2px 8px rgba(20,4,0,0.06),inset 0 1px 0 rgba(255,255,255,0.5)`}}>
+            <div style={{fontSize:13,fontWeight:700,color:C.ink,marginBottom:7,fontFamily:"'Cormorant Garamond',serif"}}>{topic.title}</div>
+            <Badge label={topic.tag} color={C.tan}/>
+          </div>
+        ))}
+      </div>
+      {article&&(
+        <Overlay onClose={()=>setArticle(null)}>
+          <ModalTitle>{article.title}</ModalTitle>
+          {article.thumbnail&&!article.error&&<img src={article.thumbnail} alt="" style={{width:"100%",borderRadius:10,marginBottom:14,maxHeight:200,objectFit:"cover"}}/>}
+          {article.loading?<div style={{textAlign:"center",padding:32,color:C.bark,fontStyle:"italic"}}>Loading…</div>
+            :<div style={{fontSize:14,color:C.ink,lineHeight:1.8}}>{article.extract}</div>}
+          {!article.loading&&!article.error&&<div style={{marginTop:12,fontSize:10,color:C.faded,fontStyle:"italic"}}>Wikipedia · CC BY-SA</div>}
+          <Btn onClick={()=>setArticle(null)} variant="secondary" style={{width:"100%",marginTop:16}}>Close</Btn>
+        </Overlay>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════
+   IDEAS TAB
+══════════════════════════════════════════════════════════ */
+function IdeasTab({ideas,onAdd,onDelete,onStartFromIdea}){
+  return (
+    <div>
+      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700,color:C.ink,marginBottom:4,letterSpacing:"-0.01em"}}>Ideas</div>
+      <div style={{fontSize:13,color:C.bark,marginBottom:20,lineHeight:1.5}}>Future builds, inspiration, things to explore.</div>
+      {ideas.length===0
+        ?<EmptyState icon="💡" heading="No ideas yet" sub="Capture your next build before it slips away"/>
+        :ideas.map(idea=>(
+            <Card key={idea.id} style={{position:"relative",borderLeft:`3px solid ${C.burnished}55`}}>
+              <div style={{position:"absolute",top:12,right:12,display:"flex",gap:8,alignItems:"center"}}>
+                <button onClick={()=>onStartFromIdea(idea)} title="Start this as a project" style={{border:`1px solid ${C.borderSoft}`,background:C.cardDeep,borderRadius:6,padding:"4px 9px",cursor:"pointer",fontSize:11,color:C.leather,fontWeight:700,fontFamily:"inherit"}}>Start →</button>
+                <button onClick={()=>onDelete(idea.id)} style={{border:"none",background:"transparent",color:C.crimson,cursor:"pointer",fontSize:18,lineHeight:1}}>×</button>
+              </div>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:700,color:C.ink,marginBottom:6,paddingRight:90}}>{idea.title}</div>
+              {idea.description&&<div style={{fontSize:13,color:C.bark,marginBottom:10,lineHeight:1.65}}>{idea.description}</div>}
+              {idea.tags?.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:5}}>{idea.tags.map(t=><Badge key={t} label={t} color={C.burnished}/>)}</div>}
+            </Card>
+          ))
+      }
+      <FAB onClick={onAdd}/>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════
+   TOOLS TAB
+══════════════════════════════════════════════════════════ */
+function ToolsTab({settings}){
+  const [tool,setTool]=useState("stitch");
+  const [seamLen,setSeamLen]=useState("");
+  const [spacing,setSpacing]=useState("4");
+  const [layers,setLayers]=useState([{id:uid(),mm:""},{id:uid(),mm:""}]);
+  const [sqFt,setSqFt]=useState("");
+  const [ppsf,setPpsf]=useState("");
+  const count=seamLen&&spacing?Math.ceil(parseFloat(seamLen)/parseFloat(spacing)):0;
+  const thread=count>0?((count*parseFloat(spacing)*3)/10).toFixed(1):0;
+  const thick=layers.reduce((a,l)=>a+(parseFloat(l.mm)||0),0);
+  const hideCost=sqFt&&ppsf?(parseFloat(sqFt)*parseFloat(ppsf)).toFixed(2):null;
+  const RRow=({label,val,gold})=>(
+    <div style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.borderSoft}44`}}>
+      <span style={{fontSize:12,color:C.bark}}>{label}</span>
+      <span style={{fontWeight:700,fontSize:gold?18:14,color:gold?C.burnished:C.ink}}>{val}</span>
+    </div>
+  );
+  return (
+    <div>
+      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700,color:C.ink,marginBottom:4,letterSpacing:"-0.01em"}}>Calculators</div>
+      <div style={{fontSize:13,color:C.bark,marginBottom:20}}>Workshop maths, done for you.</div>
+      <SubTabs tabs={[{key:"stitch",label:"Stitch"},{key:"layers",label:"Layers"},{key:"cost",label:"Material Cost"}]} active={tool} onChange={setTool}/>
+      {tool==="stitch"&&(
+        <Card>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:700,color:C.ink,marginBottom:16}}>🧵 Stitch Calculator</div>
+          <Field label="Seam length (mm)" value={seamLen} onChange={setSeamLen} type="number" placeholder="e.g. 180"/>
+          <Field label="Stitch spacing (mm)" value={spacing} onChange={setSpacing} type="number" placeholder="e.g. 4"/>
+          {count>0&&<div style={{background:C.cardDeep,borderRadius:10,padding:14}}><RRow label="Stitches needed" val={count}/><RRow label="Thread needed" val={`${thread} cm`} gold/><div style={{fontSize:11,color:C.faded,marginTop:10,fontStyle:"italic"}}>Saddle stitch, ~3× spacing. Add 15% for knots.</div></div>}
+        </Card>
+      )}
+      {tool==="layers"&&(
+        <Card>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:700,color:C.ink,marginBottom:16}}>📏 Layer Stack</div>
+          {layers.map((l,i)=>(
+            <div key={l.id} style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+              <input type="number" value={l.mm} placeholder={`Layer ${i+1} (mm)`} onChange={e=>setLayers(prev=>prev.map(x=>x.id===l.id?{...x,mm:e.target.value}:x))} style={{flex:1,padding:"10px 12px",border:`1px solid ${C.borderSoft}`,borderRadius:9,fontFamily:"inherit",fontSize:14,background:C.input}}/>
+              {layers.length>1&&<button onClick={()=>setLayers(prev=>prev.filter(x=>x.id!==l.id))} style={{border:"none",background:"transparent",color:C.crimson,cursor:"pointer",fontSize:20}}>×</button>}
+            </div>
+          ))}
+          <Btn variant="secondary" small onClick={()=>setLayers(prev=>[...prev,{id:uid(),mm:""}])} style={{marginBottom:14}}>+ Add Layer</Btn>
+          {thick>0&&<div style={{background:C.cardDeep,borderRadius:10,padding:14}}><RRow label="Total" val={`${thick.toFixed(1)} mm`} gold/><RRow label="Approx. oz" val={`${(thick/0.4).toFixed(1)} oz`}/><RRow label="Inches" val={`${(thick/25.4).toFixed(3)}"`}/></div>}
+        </Card>
+      )}
+      {tool==="cost"&&(
+        <Card>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:700,color:C.ink,marginBottom:16}}>💰 Hide Cost</div>
+          <Field label={`Price per sq ft (${settings.currency})`} value={ppsf} onChange={setPpsf} type="number" placeholder="e.g. 8.50"/>
+          <Field label="Area needed (sq ft)" value={sqFt} onChange={setSqFt} type="number" placeholder="e.g. 2.5"/>
+          {hideCost&&<div style={{background:C.cardDeep,borderRadius:10,padding:14}}><RRow label="Raw cost" val={`${settings.currency}${hideCost}`} gold/><RRow label="+15% waste" val={`${settings.currency}${(parseFloat(hideCost)*1.15).toFixed(2)}`}/><RRow label="+20% waste" val={`${settings.currency}${(parseFloat(hideCost)*1.2).toFixed(2)}`}/></div>}
+        </Card>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════
+   MODALS
+══════════════════════════════════════════════════════════ */
+function NewProjectModal({onSave,onClose}){
+  const [name,setName]=useState("");
+  const [client,setClient]=useState("");
+  const [leatherType,setLeatherType]=useState("");
+  return (
+    <Overlay onClose={onClose}>
+      <ModalTitle>New Project</ModalTitle>
+      <Field label="Project Name *" value={name} onChange={setName} placeholder="e.g. Bifold Wallet for James"/>
+      <Field label="Client" value={client} onChange={setClient} placeholder="Name or 'Personal'"/>
+      <Field label="Leather Type" value={leatherType} onChange={setLeatherType} placeholder="Veg Tan, Chrome Tan…"/>
+      <div style={{display:"flex",gap:10,marginTop:10}}>
+        <Btn variant="secondary" onClick={onClose} style={{flex:1}}>Cancel</Btn>
+        <Btn disabled={!name.trim()} onClick={()=>name.trim()&&onSave({name:name.trim(),client,leatherType})} style={{flex:2}}>Create Project</Btn>
+      </div>
+    </Overlay>
+  );
+}
+
+function NewTaskModal({onSave,onClose}){
+  const [custom,setCustom]=useState("");
+  return (
+    <Overlay onClose={onClose}>
+      <ModalTitle>Add Task</ModalTitle>
+      <div style={{fontSize:10,color:C.faded,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.09em",marginBottom:10}}>Quick Add</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:7,marginBottom:18}}>
+        {TASK_PRESETS.map(p=>(
+          <button key={p.name} onClick={()=>onSave({name:p.name,icon:p.icon})} style={{border:`1px solid ${C.borderSoft}`,borderRadius:11,padding:"11px 6px",cursor:"pointer",background:C.card,fontFamily:"inherit"}}>
+            <div style={{fontSize:22}}>{p.icon}</div>
+            <div style={{fontSize:11,fontWeight:700,color:C.ink,marginTop:5,letterSpacing:"0.02em"}}>{p.name}</div>
+          </button>
+        ))}
+      </div>
+      <Divider label="Custom Task"/>
+      <Field label="" value={custom} onChange={setCustom} placeholder="Task name e.g. Sand edges"/>
+      <div style={{display:"flex",gap:10}}>
+        <Btn variant="secondary" onClick={onClose} style={{flex:1}}>Cancel</Btn>
+        <Btn disabled={!custom.trim()} onClick={()=>custom.trim()&&onSave({name:custom.trim(),icon:"🔧"})} style={{flex:2}}>Add Custom</Btn>
+      </div>
+    </Overlay>
+  );
+}
+
+function NewMaterialModal({onSave,onClose,currency}){
+  const [name,setName]=useState(""); const [cost,setCost]=useState(""); const [qty,setQty]=useState("");
+  return (
+    <Overlay onClose={onClose}>
+      <ModalTitle>Add Material</ModalTitle>
+      <Field label="Material *" value={name} onChange={setName} placeholder="Veg tan 2mm, Linen thread…"/>
+      <Field label={`Cost (${currency})`} value={cost} onChange={setCost} type="number" placeholder="0.00"/>
+      <Field label="Quantity" value={qty} onChange={setQty} placeholder="1 sq ft, 1 reel, small…"/>
+      <div style={{display:"flex",gap:10,marginTop:8}}>
+        <Btn variant="secondary" onClick={onClose} style={{flex:1}}>Cancel</Btn>
+        <Btn disabled={!name.trim()} onClick={()=>name.trim()&&onSave({name:name.trim(),cost:parseFloat(cost)||0,qty})} style={{flex:2}}>Add</Btn>
+      </div>
+    </Overlay>
+  );
+}
+
+function NewScrapModal({onSave,onClose}){
+  const [w,setW]=useState(""); const [h,setH]=useState(""); const [t,setT]=useState(""); const [desc,setDesc]=useState("");
+  const preview=w&&h?suggestProjects(parseFloat(w),parseFloat(h),parseFloat(t)||undefined):[];
+  return (
+    <Overlay onClose={onClose}>
+      <ModalTitle>Add Scrap Piece</ModalTitle>
+      <div style={{display:"flex",gap:10}}>
+        <div style={{flex:1}}><Field label="Width (cm)" value={w} onChange={setW} type="number" placeholder="12"/></div>
+        <div style={{flex:1}}><Field label="Height (cm)" value={h} onChange={setH} type="number" placeholder="18"/></div>
+      </div>
+      <Field label="Thickness (mm)" value={t} onChange={setT} type="number" placeholder="2 — refines suggestions"/>
+      <Field label="Description" value={desc} onChange={setDesc} placeholder="Natural veg tan offcut…"/>
+      {preview.length>0&&(
+        <div style={{background:C.sage+"12",border:`1px solid ${C.sage}33`,borderRadius:10,padding:"12px 14px",marginBottom:14}}>
+          <div style={{fontSize:10,fontWeight:800,color:C.sage,textTransform:"uppercase",letterSpacing:"0.09em",marginBottom:7}}>✓ {preview.length} project{preview.length!==1?"s":""} possible</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>{preview.slice(0,5).map(p=><span key={p.id} style={{fontSize:11,color:C.sage,fontWeight:700}}>{p.icon} {p.name}</span>)}{preview.length>5&&<span style={{fontSize:11,color:C.bark}}>+{preview.length-5} more</span>}</div>
+        </div>
+      )}
+      <div style={{display:"flex",gap:10}}>
+        <Btn variant="secondary" onClick={onClose} style={{flex:1}}>Cancel</Btn>
+        <Btn disabled={!w||!h} onClick={()=>w&&h&&onSave({width:parseFloat(w),height:parseFloat(h),thicknessMm:t,description:desc})} style={{flex:2}}>Add to Scrap Bin</Btn>
+      </div>
+    </Overlay>
+  );
+}
+
+function NewIdeaModal({onSave,onClose}){
+  const [title,setTitle]=useState(""); const [description,setDescription]=useState(""); const [tagStr,setTagStr]=useState("");
+  return (
+    <Overlay onClose={onClose}>
+      <ModalTitle>New Idea</ModalTitle>
+      <Field label="Title *" value={title} onChange={setTitle} placeholder="Tooled messenger bag, travel wallet…"/>
+      <Field label="Description" value={description} onChange={setDescription} placeholder="Details, reference, inspiration…" rows={3}/>
+      <Field label="Tags (comma separated)" value={tagStr} onChange={setTagStr} placeholder="bag, tooled, gift, complex"/>
+      <div style={{display:"flex",gap:10,marginTop:8}}>
+        <Btn variant="secondary" onClick={onClose} style={{flex:1}}>Cancel</Btn>
+        <Btn disabled={!title.trim()} onClick={()=>title.trim()&&onSave({title:title.trim(),description,tags:tagStr.split(",").map(t=>t.trim()).filter(Boolean)})} style={{flex:2}}>Save Idea</Btn>
+      </div>
+    </Overlay>
+  );
+}
+
+function SettingsModal({settings,onSave,onClose}){
+  const [currency,setCurrency]=useState(settings.currency);
+  const [hourlyRate,setHourlyRate]=useState(String(settings.hourlyRate));
+  const [pm,setPm]=useState(String(settings.priceMultiplier));
+  const hr=parseFloat(hourlyRate)||0; const pmf=parseFloat(pm)||2.5;
+  const exCost=2*hr+15; const exPrice=exCost*pmf;
+  return (
+    <Overlay onClose={onClose}>
+      <ModalTitle>Settings</ModalTitle>
+      <div style={{marginBottom:16}}>
+        <div style={{fontSize:10,color:C.faded,fontWeight:700,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.09em"}}>Currency</div>
+        <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+          {["£","$","€","¥","A$","C$"].map(s=>(
+            <button key={s} onClick={()=>setCurrency(s)} style={{border:`1px solid ${currency===s?C.leather:C.borderSoft}`,borderRadius:8,padding:"7px 13px",cursor:"pointer",fontFamily:"inherit",fontSize:15,fontWeight:700,background:currency===s?C.leather:C.card,color:currency===s?"#FAF0D8":C.ink,transition:"all 0.15s"}}>{s}</button>
+          ))}
+        </div>
+      </div>
+      <Field label={`Hourly Rate (${currency})`} value={hourlyRate} onChange={setHourlyRate} type="number" placeholder="25"/>
+      <div style={{marginBottom:16}}>
+        <div style={{fontSize:10,color:C.faded,fontWeight:700,marginBottom:5,textTransform:"uppercase",letterSpacing:"0.09em"}}>Default Price Multiplier</div>
+        <div style={{fontSize:12,color:C.bark,marginBottom:8,lineHeight:1.5}}>Applied to total cost to suggest selling price. You can override per project.</div>
+        <div style={{display:"flex",gap:7}}>{["2","2.5","3","3.5","4"].map(m=>(
+          <button key={m} onClick={()=>setPm(m)} style={{border:`1px solid ${pm===m?C.leather:C.borderSoft}`,borderRadius:8,padding:"7px 13px",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:700,background:pm===m?C.leather:C.card,color:pm===m?"#FAF0D8":C.ink}}>×{m}</button>
+        ))}</div>
+      </div>
+      <div style={{background:C.burnished+"14",border:`1px solid ${C.burnished}44`,borderRadius:10,padding:"12px 14px",marginBottom:18,fontSize:12,color:C.ink,lineHeight:1.7}}>
+        Example: 2 hrs + {currency}15 materials = costs <strong>{currency}{exCost.toFixed(0)}</strong> → suggested price <strong>{currency}{exPrice.toFixed(0)}</strong>
+      </div>
+      <div style={{display:"flex",gap:10}}>
+        <Btn variant="secondary" onClick={onClose} style={{flex:1}}>Cancel</Btn>
+        <Btn onClick={()=>{onSave({currency,hourlyRate:parseFloat(hourlyRate)||25,priceMultiplier:parseFloat(pm)||2.5});onClose();}} style={{flex:2}}>Save</Btn>
+      </div>
+    </Overlay>
+  );
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   SPLASH SCREEN
+══════════════════════════════════════════════════════════ */
+function SplashScreen({onDone}){
+  const [fading,setFading]=useState(false);
+  useEffect(()=>{
+    const t1=setTimeout(()=>setFading(true),1900);
+    const t2=setTimeout(()=>onDone(),2500);
+    return()=>{clearTimeout(t1);clearTimeout(t2);};
+  },[]);
+  return (
+    <div style={{position:"fixed",inset:0,background:`linear-gradient(160deg,${C.leather} 0%,${C.oxblood} 55%,#2A0800 100%)`,zIndex:9999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:18,transition:"opacity 0.55s ease",opacity:fading?0:1,pointerEvents:"none"}}>
+      <CLLogo size={120} color={C.burnished}/>
+      <div style={{textAlign:"center"}}>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,fontWeight:800,color:"#FAF0D8",letterSpacing:"0.14em",textTransform:"uppercase",lineHeight:1}}>Cernunnos</div>
+        <div style={{fontSize:11,color:`${C.burnished}BB`,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginTop:5}}>Leatherworks</div>
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:10,width:160,marginTop:4}}>
+        <div style={{flex:1,height:0.5,background:`${C.burnished}44`}}/>
+        <div style={{fontSize:9,color:`${C.burnished}66`,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:700,whiteSpace:"nowrap"}}>Workshop</div>
+        <div style={{flex:1,height:0.5,background:`${C.burnished}44`}}/>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════
+   BOTTOM NAV
+══════════════════════════════════════════════════════════ */
+function BottomNav({active,onChange}){
+  const items=[{key:"projects",icon:"📋",label:"Projects"},{key:"scraps",icon:"✂️",label:"Scraps"},{key:"knowledge",icon:"📚",label:"Learn"},{key:"ideas",icon:"💡",label:"Ideas"},{key:"tools",icon:"🔧",label:"Tools"}];
+  return (
+    <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:`linear-gradient(180deg,${C.card} 0%,#F5EDD6 100%)`,borderTop:`1px solid ${C.borderSoft}`,display:"flex",zIndex:60,boxShadow:`0 -4px 24px rgba(20,4,0,0.10)`}}>
+      {items.map(item=>(
+        <button key={item.key} onClick={()=>onChange(item.key)} style={{flex:1,border:"none",background:"transparent",cursor:"pointer",padding:"9px 4px 13px",display:"flex",flexDirection:"column",alignItems:"center",gap:3,position:"relative"}}>
+          <span style={{fontSize:20,opacity:active===item.key?1:0.55,transition:"opacity 0.15s"}}>{item.icon}</span>
+          <span style={{fontSize:9,fontWeight:700,letterSpacing:"0.07em",textTransform:"uppercase",fontFamily:"'Lora',serif",color:active===item.key?C.leather:C.faded,transition:"color 0.15s"}}>{item.label}</span>
+          {active===item.key&&<div style={{position:"absolute",bottom:0,left:"50%",transform:"translateX(-50%)",width:20,height:2,background:C.burnished,borderRadius:"2px 2px 0 0"}}/>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════
+   ROOT APP
+══════════════════════════════════════════════════════════ */
+function CernunnosWorkshop(){
+  const [splashDone,setSplashDone]=useState(false);
+  const [tab,setTab]=useState("projects");
+  const [projects,setProjects]=useState(SAMPLE_PROJECTS);
+  const [scraps,setScraps]=useState(SAMPLE_SCRAPS);
+  const [ideas,setIdeas]=useState([]);
+  const [settings,setSettings]=useState({currency:"£",hourlyRate:25,priceMultiplier:2.5});
+  const [activeTimer,setActiveTimer]=useState(null);
+  const [selectedProjectId,setSelectedProjectId]=useState(null);
+  const [modal,setModal]=useState(null);
+  const timerRef=useRef(null);
+
+  useEffect(()=>{
+    clearInterval(timerRef.current);
+    if(activeTimer){
+      timerRef.current=setInterval(()=>{
+        setProjects(prev=>prev.map(p=>p.id!==activeTimer.projectId?p:{...p,tasks:p.tasks.map(t=>t.id!==activeTimer.taskId?t:{...t,seconds:(t.seconds||0)+1})}));
+      },1000);
+    }
+    return()=>clearInterval(timerRef.current);
+  },[activeTimer]);
+
+  const addProject=({name,client,leatherType})=>{
+    const proj={id:uid(),name,client,leatherType,thickness:"",thread:"",needle:"",status:"in-progress",notes:"",tasks:[],materials:[],markup:settings.priceMultiplier,createdAt:Date.now()};
+    setProjects(prev=>[proj,...prev]);
+    setSelectedProjectId(proj.id);
+    setModal(null);
+  };
+  const updateProject=(id,updates)=>setProjects(prev=>prev.map(p=>p.id===id?{...p,...updates}:p));
+  const duplicateProject=(project)=>{
+    const dup={...project,id:uid(),name:`${project.name} (copy)`,status:"in-progress",createdAt:Date.now(),tasks:project.tasks.map(t=>({...t,id:uid(),seconds:0,done:false})),materials:project.materials.map(m=>({...m,id:uid()}))};
+    setProjects(prev=>[dup,...prev]);
+    setSelectedProjectId(dup.id);
+  };
+  const addTask=(projectId,{name,icon})=>{setProjects(prev=>prev.map(p=>p.id!==projectId?p:{...p,tasks:[...p.tasks,{id:uid(),name,icon,seconds:0,notes:"",done:false}]}));setModal(null);};
+  const updateTask=(projectId,taskId,updates)=>setProjects(prev=>prev.map(p=>p.id!==projectId?p:{...p,tasks:p.tasks.map(t=>t.id===taskId?{...t,...updates}:t)}));
+  const deleteTask=(projectId,taskId)=>{if(activeTimer?.taskId===taskId)setActiveTimer(null);setProjects(prev=>prev.map(p=>p.id!==projectId?p:{...p,tasks:p.tasks.filter(t=>t.id!==taskId)}));};
+  const toggleTimer=(projectId,taskId)=>setActiveTimer(prev=>prev?.taskId===taskId&&prev?.projectId===projectId?null:{projectId,taskId});
+  const addMaterial=(projectId,mat)=>{setProjects(prev=>prev.map(p=>p.id!==projectId?p:{...p,materials:[...p.materials,{...mat,id:uid()}]}));setModal(null);};
+  const deleteMaterial=(projectId,matId)=>setProjects(prev=>prev.map(p=>p.id!==projectId?p:{...p,materials:p.materials.filter(m=>m.id!==matId)}));
+  const startFromScrap=(scrapProj)=>{
+    const tasks=scrapProj.tasks.map(n=>{const pr=TASK_PRESETS.find(p=>p.name===n)||{icon:"🔧"};return{id:uid(),name:n,icon:pr.icon,seconds:0,notes:"",done:false};});
+    const proj={id:uid(),name:scrapProj.name,client:"",leatherType:"",thickness:"",thread:"",needle:"",status:"in-progress",notes:`Workshop tip: ${scrapProj.tips}\n\nEstimated time: ${scrapProj.time}\nSuggested price: ${scrapProj.sells}`,tasks,materials:[],markup:settings.priceMultiplier,createdAt:Date.now()};
+    setProjects(prev=>[proj,...prev]);setSelectedProjectId(proj.id);setTab("projects");
+  };
+  const startFromIdea=(idea)=>{
+    const proj={id:uid(),name:idea.title,client:"",leatherType:"",thickness:"",thread:"",needle:"",status:"in-progress",notes:idea.description||"",tasks:[],materials:[],markup:settings.priceMultiplier,createdAt:Date.now()};
+    setProjects(prev=>[proj,...prev]);setSelectedProjectId(proj.id);setTab("projects");
+  };
+
+  const selectedProject=projects.find(p=>p.id===selectedProjectId);
+  const handleTabChange=t=>{setSelectedProjectId(null);setTab(t);};
+
+  return (
+    <div style={{fontFamily:"'Lora','Georgia',serif",background:C.bg,minHeight:"100vh",maxWidth:480,margin:"0 auto",position:"relative",paddingBottom:82}}>
+      {!splashDone&&<SplashScreen onDone={()=>setSplashDone(true)}/>}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700;800&family=Lora:wght@400;500;600&display=swap');
+        *{box-sizing:border-box;}
+        body{margin:0;background:#DFC88E;}
+        input,textarea,select{outline:none;font-family:inherit;}
+        input:focus,textarea:focus{border-color:${C.border}!important;box-shadow:0 0 0 2px ${C.border}22;}
+        button:active{transform:scale(0.96);}
+        ::-webkit-scrollbar{width:3px;height:3px;}
+        ::-webkit-scrollbar-thumb{background:${C.borderSoft};border-radius:4px;}
+        ::placeholder{color:${C.faded}99;}
+      `}</style>
+
+      {/* ─── Sticky Header ─── */}
+      {!selectedProject&&(
+        <div style={{background:`linear-gradient(160deg,${C.leather} 0%,${C.oxblood} 100%)`,padding:"14px 18px 12px",position:"sticky",top:0,zIndex:40,borderBottom:`1px solid ${C.burnished}44`}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div style={{display:"flex",alignItems:"center",gap:12}}>
+              <CLLogo size={38} color={C.burnished}/>
+              <div>
+                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:800,color:"#FAF0D8",letterSpacing:"0.05em",textTransform:"uppercase",lineHeight:1}}>Cernunnos</div>
+                <div style={{fontSize:9,color:`${C.burnished}CC`,letterSpacing:"0.16em",textTransform:"uppercase",fontWeight:700,marginTop:2}}>Leatherworks · Workshop</div>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              {activeTimer&&<div style={{background:`${C.sage}44`,border:`1px solid ${C.sage}88`,borderRadius:20,padding:"4px 11px",fontSize:11,color:"#A0E0B0",fontWeight:700,letterSpacing:"0.04em"}}>● Live</div>}
+              <button onClick={()=>setModal({type:"settings"})} style={{border:`1px solid rgba(196,160,48,0.3)`,background:"rgba(250,240,216,0.08)",borderRadius:20,padding:"5px 11px",cursor:"pointer",fontSize:13,color:"#FAF0D8AA",fontWeight:600}}>⚙️</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Content ─── */}
+      <div style={{padding:selectedProject?"14px 16px 0":"18px 16px 0"}}>
+        {selectedProject?(
+          <ProjectDetail project={selectedProject}
+            activeTimerId={activeTimer?.projectId===selectedProject.id?activeTimer.taskId:null}
+            onTimerToggle={taskId=>toggleTimer(selectedProject.id,taskId)}
+            onUpdateProject={u=>updateProject(selectedProject.id,u)}
+            onUpdateTask={(taskId,u)=>updateTask(selectedProject.id,taskId,u)}
+            onDeleteTask={taskId=>deleteTask(selectedProject.id,taskId)}
+            onAddTask={()=>setModal({type:"new-task",projectId:selectedProject.id})}
+            onAddMaterial={()=>setModal({type:"new-material",projectId:selectedProject.id})}
+            onDeleteMaterial={matId=>deleteMaterial(selectedProject.id,matId)}
+            settings={settings} onBack={()=>setSelectedProjectId(null)}
+            onDuplicate={()=>duplicateProject(selectedProject)}/>
+        ):tab==="projects"?<ProjectsTab projects={projects} onSelect={setSelectedProjectId} onAdd={()=>setModal({type:"new-project"})} activeTimer={activeTimer}/>
+        :tab==="scraps"?<ScrapsTab scraps={scraps} onAdd={()=>setModal({type:"new-scrap"})} onDelete={id=>setScraps(prev=>prev.filter(s=>s.id!==id))} onStartProject={startFromScrap}/>
+        :tab==="knowledge"?<KnowledgeTab/>
+        :tab==="ideas"?<IdeasTab ideas={ideas} onAdd={()=>setModal({type:"new-idea"})} onDelete={id=>setIdeas(prev=>prev.filter(i=>i.id!==id))} onStartFromIdea={startFromIdea}/>
+        :<ToolsTab settings={settings}/>}
+      </div>
+
+      {!selectedProject&&<BottomNav active={tab} onChange={handleTabChange}/>}
+
+      {modal?.type==="new-project"  &&<NewProjectModal  onSave={addProject} onClose={()=>setModal(null)}/>}
+      {modal?.type==="new-task"     &&<NewTaskModal     onSave={t=>addTask(modal.projectId,t)} onClose={()=>setModal(null)}/>}
+      {modal?.type==="new-material" &&<NewMaterialModal onSave={m=>addMaterial(modal.projectId,m)} onClose={()=>setModal(null)} currency={settings.currency}/>}
+      {modal?.type==="new-scrap"    &&<NewScrapModal    onSave={s=>{setScraps(prev=>[{...s,id:uid()},...prev]);setModal(null);}} onClose={()=>setModal(null)}/>}
+      {modal?.type==="new-idea"     &&<NewIdeaModal     onSave={i=>{setIdeas(prev=>[{...i,id:uid()},...prev]);setModal(null);}} onClose={()=>setModal(null)}/>}
+      {modal?.type==="settings"     &&<SettingsModal    settings={settings} onSave={s=>setSettings(s)} onClose={()=>setModal(null)}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  React.createElement(CernunnosWorkshop)
+);
+  </script>
+</body>
+</html>
